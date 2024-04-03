@@ -1,3 +1,5 @@
+import os
+import wandb
 from ray.rllib.algorithms import PPOConfig
 from ray.tune.registry import register_env
 
@@ -15,7 +17,7 @@ register_env("MiniWorld-Maze-v0", env_creator)
 config = (
     PPOConfig()
     .environment("MiniWorld-Maze-v0")
-    .rollouts(num_rollout_workers=2)
+    .rollouts(num_rollout_workers=4)
     .framework("torch")
     .training(model={
         "dim": 84,
@@ -24,9 +26,16 @@ config = (
     .evaluation(evaluation_num_workers=1)
 )
 
+local_rank = int(os.getenv("LOCAL_RANK", 0))
+if local_rank == 0:
+    wandb.init(project="minioff", name=f'pruebitas', sync_tensorboard=True,
+               config=config.to_dict())
+
 algo = config.build()
 
-for _ in range(5):
+for _ in range(3):
     print(algo.train())
 
 algo.evaluate()
+
+
